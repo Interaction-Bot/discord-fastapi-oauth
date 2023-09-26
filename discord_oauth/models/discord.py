@@ -32,6 +32,7 @@ class User:
     def __init__(self, payload: Dict):
         self.id = int(payload["id"])
         self.username: str = payload["username"]
+        self.global_name: str = payload["global_name"]
         self.discriminator: str = payload["discriminator"]
         self.avatar_hash: Optional[str] = payload.get("avatar")
 
