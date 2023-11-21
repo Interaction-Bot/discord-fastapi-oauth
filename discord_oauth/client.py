@@ -31,8 +31,7 @@ class DiscordOAuthClient:
         self.prompt = prompt
 
         self.client_session: aiohttp.ClientSession = None  # type: ignore
-
-        self.user_cache = user_cache if user_cache else LRUCache(maxsize=100)
+        self.user_cache = LRUCache(maxsize=100)
 
     async def _request(self, method: str, url: str, data: Dict = None, auth: Request = None) -> Dict:
         headers = {}
@@ -120,25 +119,28 @@ class DiscordOAuthClient:
 
             raise e
 
-    async def fetch_guilds(self, request: Request) -> List[Guild]:
+    async def fetch_guilds(self, request: Request, use_cache: bool = True) -> List[Guild]:
         if "DISCORD_USER_ID" in request.session:
             try:
                 user = self.user_cache[request.session["DISCORD_USER_ID"]]
-                if user and user.guilds:
+                if user and user.guilds and use_cache:
                     return user.guilds
 
                 if not user:
                     await self.fetch_user(request)
+
             except KeyError:
-                pass
+                await self.fetch_user(request)
         else:
             await self.fetch_user(request)
 
         try:
             data = await self._request("get", const.DISCORD_USER_GUILDS_URL, auth=request)
             guilds = {int(guild_data["id"]): Guild(guild_data) for guild_data in data}
+    
             self.user_cache[request.session["DISCORD_USER_ID"]].guilds = guilds
             return list(guilds.values())
+            
         except exceptions.RateLimited as e:
             guilds = self.user_cache[request.session["DISCORD_USER_ID"]].guilds
             if guilds:
