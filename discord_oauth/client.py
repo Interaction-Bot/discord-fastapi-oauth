@@ -97,8 +97,9 @@ class DiscordOAuthClient:
         if "DISCORD_USER_ID" not in request.session:
             return
 
-        del self.user_cache[request.session["DISCORD_USER_ID"]]
-        request.session.clear()
+        if request.session["DISCORD_USER_ID"] in self.user_cache:
+            del self.user_cache[request.session["DISCORD_USER_ID"]]
+            request.session.clear()
 
     async def fetch_user(self, request: Request) -> User:
         if "DISCORD_USER_ID" in request.session:
